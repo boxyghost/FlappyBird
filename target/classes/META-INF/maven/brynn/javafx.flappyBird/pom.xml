@@ -41,7 +41,7 @@
                         <!-- Usage: mvn clean javafx:run -->
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>brynn.javafx.flappyBird.App</mainClass>
+                            <mainClass>brynn.javafx.flappyBird.Application</mainClass>
                         </configuration>
                     </execution>
                 </executions>
