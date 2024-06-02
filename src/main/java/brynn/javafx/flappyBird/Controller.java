@@ -6,9 +6,11 @@ import javafx.fxml.Initializable;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.scene.layout.AnchorPane;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable{
@@ -21,13 +23,27 @@ public class Controller implements Initializable{
 	@FXML
 	private Rectangle bird;
 	
-	double yDelta = 0.2;
-	double time = 0;
-	int jumpHeight = 100;
+	@FXML
+	private Text score;
+	
+	private double accelerationTime = 0;
+	private int gameTime = 0;
+	private int scoreCounter = 0;
+	
+	
+	private Bird flappy;
+	private Obstacles wallGenerator;
+	
+	ArrayList<Rectangle> obstacles = new ArrayList<>();
+	
 	
 	@Override
 	public void initialize(URL url, ResourceBundle resourceBundle) {
-		load();
+		int jumpHeight = 75;
+		flappy = new Bird(bird, jumpHeight);
+		double planeHeight = 600;
+		double planeWidth = 400;
+		wallGenerator = new Obstacles(plane, planeHeight, planeWidth);
 		
 		gameLoop = new AnimationTimer() {
 			@Override
@@ -35,57 +51,69 @@ public class Controller implements Initializable{
 				update();
 			}
 		};
+		
+		load();
 		gameLoop.start();
 	}
 	
 	@FXML
 	void pressed(KeyEvent event) {
 		if(event.getCode() == KeyCode.SPACE) {
-			fly();
+			flappy.fly();
+			accelerationTime = 0;
 		}
 	}
 	
-	private void fly() {
-		time = 0;
-		if(bird.getLayoutY() + bird.getY() <= jumpHeight) {
-			moveBirdY(-(bird.getLayoutY() + bird.getY()));
-			return;
-		}
-		
-		moveBirdY(-jumpHeight);
-	}
 	
 	// This is called every game frame
 	private void update() {
-		time++;
-		// Move the bird down according to acceleration
-		moveBirdY(yDelta * time);
+		// Move bird
+		gameTime++;
+		accelerationTime++;
+		double yDelta = 0.02;
+		flappy.moveBirdY(yDelta*accelerationTime);
 		
-		// Check if bird is dead, go to menu on death
-		if (checkDeath()) {
-			resetBird();
+		// Update points
+		if (pointChecker(obstacles, bird)) {
+			scoreCounter++;
+			score.setText(String.valueOf(scoreCounter));
+		}
+		
+		// Add another wall every 500 frames
+		wallGenerator.moveObstacles(obstacles);
+		if(gameTime % 500 == 0) {
+			obstacles.addAll(wallGenerator.createObstacles());
+		}
+		
+		if(flappy.isBirdDead(obstacles, plane)) {
+			resetGame();
 		}
 	}
+
 	
 	private void load() {
-		System.out.println("Game is starting");
+		obstacles.addAll(wallGenerator.createObstacles());
 	}
 	
-	
-	// Move the bird around
-	private void moveBirdY(double delta) {
-		bird.setY(bird.getY() + delta);
-	}
-	
-	// Did bird go out of bounds?
-	private boolean checkDeath() {
-		double birdY = bird.getLayoutY() + bird.getY();
-		return birdY >= plane.getHeight();
-	}
-	
-	private void resetBird() {
+	private void resetGame() {
 		bird.setY(0);
-		time = 0;
+		plane.getChildren().removeAll(obstacles);
+		obstacles.clear();
+		gameTime = 0;
+		accelerationTime = 0;
+		scoreCounter = 0;
+		score.setText(String.valueOf(scoreCounter));
 	}
+	
+	private boolean pointChecker(ArrayList<Rectangle> walls, Rectangle bird) {
+		for(Rectangle r: walls) {
+			int birdX = (int) (bird.getLayoutX() + bird.getX());
+			if(((int)(r.getLayoutX() + r.getX()) == birdX)){
+	                return true;
+	        }
+		}
+		return false;
+	}
+	
 
 }
